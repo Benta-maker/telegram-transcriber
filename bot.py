@@ -2,6 +2,8 @@ import os
 import logging
 import tempfile
 import asyncio
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 
 import whisper
@@ -166,6 +168,22 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def run_health_server() -> None:
+    """Tiny HTTP server so Render's free web service health check passes."""
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"OK")
+        def log_message(self, *args):
+            pass  # silence access logs
+
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), Handler)
+    logger.info(f"Health check server running on port {port}")
+    server.serve_forever()
+
+
 def main() -> None:
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
@@ -185,6 +203,10 @@ def main() -> None:
     )
     app.add_handler(MessageHandler(media_filter, handle_media))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
+    # Start health check server in background thread
+    health_thread = threading.Thread(target=run_health_server, daemon=True)
+    health_thread.start()
 
     logger.info("Bot is polling …")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
