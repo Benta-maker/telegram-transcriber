@@ -1,0 +1,17 @@
+services:
+  - type: worker                   # background worker — no HTTP port needed
+    name: telegram-transcriber
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: oregon                 # free-tier region
+    plan: free
+
+    # ── Environment variables ─────────────────────────────────────────────────
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false                # set manually in Render dashboard (never commit!)
+      - key: WHISPER_MODEL
+        value: base                # tiny | base | small — larger = slower but better
+
+    # ── Auto-deploy on push to main ───────────────────────────────────────────
+    autoDeploy: true
