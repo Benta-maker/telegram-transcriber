@@ -1,5 +1,6 @@
 python-telegram-bot==21.6
 openai-whisper==20231117
 ffmpeg-python==0.2.0
-torch==2.2.2
+torch==2.2.2+cpu --extra-index-url https://download.pytorch.org/whl/cpu
 numpy<2.0
+setuptools
